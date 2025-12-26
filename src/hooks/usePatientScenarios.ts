@@ -10,6 +10,7 @@ export interface PatientScenario {
   gender: string | null;
   condition_description: string | null;
   notes: string | null;
+  time_limit: number | null; // in seconds, null means unlimited
   created_at: string;
   updated_at: string;
 }

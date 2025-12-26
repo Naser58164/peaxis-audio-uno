@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Plus, Trash2, Edit2, Check, X } from 'lucide-react';
+import { Plus, Trash2, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -31,6 +32,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   usePatientScenarios,
@@ -43,6 +45,15 @@ interface ScenarioSelectorProps {
   selectedScenarioId: string | null;
   onScenarioSelect: (scenarioId: string | null) => void;
 }
+
+const TIME_LIMIT_OPTIONS = [
+  { label: 'No limit', value: null },
+  { label: '3 minutes', value: 180 },
+  { label: '5 minutes', value: 300 },
+  { label: '10 minutes', value: 600 },
+  { label: '15 minutes', value: 900 },
+  { label: '20 minutes', value: 1200 },
+];
 
 export function ScenarioSelector({ selectedScenarioId, onScenarioSelect }: ScenarioSelectorProps) {
   const { user, isExaminer } = useAuth();
@@ -57,6 +68,8 @@ export function ScenarioSelector({ selectedScenarioId, onScenarioSelect }: Scena
     gender: '',
     condition_description: '',
     notes: '',
+    time_limit: null as number | null,
+    hasTimeLimit: false,
   });
 
   const handleCreateScenario = async () => {
@@ -68,10 +81,11 @@ export function ScenarioSelector({ selectedScenarioId, onScenarioSelect }: Scena
       gender: newScenario.gender || null,
       condition_description: newScenario.condition_description || null,
       notes: newScenario.notes || null,
+      time_limit: newScenario.hasTimeLimit ? newScenario.time_limit : null,
       created_by: user.id,
     });
     
-    setNewScenario({ name: '', age: '', gender: '', condition_description: '', notes: '' });
+    setNewScenario({ name: '', age: '', gender: '', condition_description: '', notes: '', time_limit: null, hasTimeLimit: false });
     setIsDialogOpen(false);
   };
 
@@ -163,6 +177,46 @@ export function ScenarioSelector({ selectedScenarioId, onScenarioSelect }: Scena
                     onChange={(e) => setNewScenario({ ...newScenario, notes: e.target.value })}
                   />
                 </div>
+
+                {/* Time Limit Setting */}
+                <div className="space-y-3 p-4 bg-muted rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Timer className="h-4 w-4 text-primary" />
+                      <Label htmlFor="time-limit">Timed Exam</Label>
+                    </div>
+                    <Switch
+                      id="time-limit"
+                      checked={newScenario.hasTimeLimit}
+                      onCheckedChange={(checked) => setNewScenario({ 
+                        ...newScenario, 
+                        hasTimeLimit: checked,
+                        time_limit: checked ? 300 : null 
+                      })}
+                    />
+                  </div>
+                  {newScenario.hasTimeLimit && (
+                    <Select
+                      value={newScenario.time_limit?.toString() || '300'}
+                      onValueChange={(value) => setNewScenario({ 
+                        ...newScenario, 
+                        time_limit: parseInt(value) 
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIME_LIMIT_OPTIONS.filter(o => o.value !== null).map((option) => (
+                          <SelectItem key={option.value} value={option.value!.toString()}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
                 <Button
                   onClick={handleCreateScenario}
                   disabled={!newScenario.name.trim() || createScenario.isPending}
@@ -196,17 +250,23 @@ export function ScenarioSelector({ selectedScenarioId, onScenarioSelect }: Scena
       {selectedScenario && (
         <Card>
           <CardContent className="pt-4">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <h4 className="font-medium">{selectedScenario.name}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {selectedScenario.age && `Age: ${selectedScenario.age}`}
-                  {selectedScenario.gender && ` • ${selectedScenario.gender}`}
-                </p>
-                {selectedScenario.condition_description && (
-                  <p className="text-sm mt-2">{selectedScenario.condition_description}</p>
-                )}
-              </div>
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <h4 className="font-medium">{selectedScenario.name}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedScenario.age && `Age: ${selectedScenario.age}`}
+                    {selectedScenario.gender && ` • ${selectedScenario.gender}`}
+                  </p>
+                  {selectedScenario.time_limit && (
+                    <Badge variant="secondary" className="mt-1">
+                      <Timer className="h-3 w-3 mr-1" />
+                      {Math.floor(selectedScenario.time_limit / 60)} min limit
+                    </Badge>
+                  )}
+                  {selectedScenario.condition_description && (
+                    <p className="text-sm mt-2">{selectedScenario.condition_description}</p>
+                  )}
+                </div>
               {isExaminer && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>

@@ -4,6 +4,7 @@ import { Header } from '@/components/Header';
 import { ManikinDiagram, locations, type AuscultationLocation } from '@/components/ManikinDiagram';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { Leaderboard } from '@/components/Leaderboard';
+import { StudentAchievements } from '@/components/StudentAchievements';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -28,7 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePatientScenarios, useScenarioSounds } from '@/hooks/usePatientScenarios';
 import { useCreateAttempt, useUpdateAttempt, useCreateGrade } from '@/hooks/useExamination';
-import { Play, CheckCircle, XCircle, Clock, Award, RotateCcw, ArrowLeft, Timer, AlertTriangle } from 'lucide-react';
+import { Play, CheckCircle, XCircle, Clock, Award, RotateCcw, ArrowLeft, Timer, AlertTriangle, Trophy } from 'lucide-react';
 
 interface Answer {
   location: AuscultationLocation;
@@ -37,7 +39,7 @@ interface Answer {
   isCorrect: boolean;
 }
 
-const EXAM_TIME_LIMIT = 5 * 60; // 5 minutes in seconds
+const DEFAULT_TIME_LIMIT = 5 * 60; // 5 minutes default
 
 export default function StudentPractice() {
   const navigate = useNavigate();
@@ -47,7 +49,8 @@ export default function StudentPractice() {
   
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
   const [timedMode, setTimedMode] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(EXAM_TIME_LIMIT);
+  const [customTimeLimit, setCustomTimeLimit] = useState<number | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState(DEFAULT_TIME_LIMIT);
   const [examStarted, setExamStarted] = useState(false);
   const [currentAttemptId, setCurrentAttemptId] = useState<string | null>(null);
   const [currentLocationIndex, setCurrentLocationIndex] = useState(0);
@@ -66,6 +69,10 @@ export default function StudentPractice() {
   const updateAttempt = useUpdateAttempt();
   const createGrade = useCreateGrade();
 
+  const selectedScenario = scenarios?.find(s => s.id === selectedScenarioId);
+  const scenarioTimeLimit = selectedScenario?.time_limit;
+  const effectiveTimeLimit = scenarioTimeLimit || (timedMode ? customTimeLimit || DEFAULT_TIME_LIMIT : null);
+
   const currentLocation = locations[currentLocationIndex];
   const currentSound = sounds?.find(s => s.location === selectedLocation);
   const progress = (currentLocationIndex / locations.length) * 100;
@@ -77,9 +84,9 @@ export default function StudentPractice() {
     }
   }, [user, authLoading, navigate]);
 
-  // Timer effect
+  // Timer effect - only run if there's an effective time limit
   useEffect(() => {
-    if (examStarted && timedMode && timeRemaining > 0 && !showResults) {
+    if (examStarted && effectiveTimeLimit && timeRemaining > 0 && !showResults) {
       timerRef.current = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
@@ -97,7 +104,7 @@ export default function StudentPractice() {
         }
       };
     }
-  }, [examStarted, timedMode, showResults]);
+  }, [examStarted, effectiveTimeLimit, showResults, timeRemaining]);
 
   // Handle time expiration
   useEffect(() => {
@@ -139,21 +146,23 @@ export default function StudentPractice() {
   const handleStartExam = async () => {
     if (!selectedScenarioId || !user) return;
 
+    const timeLimit = scenarioTimeLimit || (timedMode ? customTimeLimit || DEFAULT_TIME_LIMIT : null);
+
     try {
       const result = await createAttempt.mutateAsync({
         student_id: user.id,
         scenario_id: selectedScenarioId,
         session_id: null,
-        notes: timedMode ? 'Self-practice exam (Timed)' : 'Self-practice exam',
+        notes: timeLimit ? `Self-practice exam (${Math.floor(timeLimit / 60)} min limit)` : 'Self-practice exam',
       });
       
       setCurrentAttemptId(result.id);
       setExamStarted(true);
       setStartTime(new Date());
-      setTimeRemaining(EXAM_TIME_LIMIT);
+      setTimeRemaining(timeLimit || DEFAULT_TIME_LIMIT);
       setTimeExpired(false);
       setSelectedLocation(locations[0].id);
-      toast({ title: timedMode ? 'Timed exam started! Good luck!' : 'Exam started! Good luck!' });
+      toast({ title: timeLimit ? `Timed exam started! You have ${Math.floor(timeLimit / 60)} minutes.` : 'Exam started! Good luck!' });
     } catch (error) {
       toast({ title: 'Failed to start exam', variant: 'destructive' });
     }
@@ -228,7 +237,8 @@ export default function StudentPractice() {
     setShowResults(false);
     setUserGuess('');
     setStartTime(null);
-    setTimeRemaining(EXAM_TIME_LIMIT);
+    setTimeRemaining(DEFAULT_TIME_LIMIT);
+    setCustomTimeLimit(null);
     setTimeExpired(false);
   };
 
@@ -260,84 +270,129 @@ export default function StudentPractice() {
         </Button>
 
         {!examStarted ? (
-          <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Award className="h-5 w-5" />
-                  Start Practice Exam
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Select Scenario</label>
-                  <Select 
-                    value={selectedScenarioId || ''} 
-                    onValueChange={setSelectedScenarioId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a patient scenario" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {scenarios?.map((scenario) => (
-                        <SelectItem key={scenario.id} value={scenario.id}>
-                          {scenario.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Timed Mode Toggle */}
-                <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Timer className="h-4 w-4 text-primary" />
-                    <div>
-                      <Label htmlFor="timed-mode" className="font-medium">Timed Exam</Label>
-                      <p className="text-xs text-muted-foreground">
-                        {EXAM_TIME_LIMIT / 60} minute time limit
-                      </p>
-                    </div>
+          <div className="space-y-8 max-w-4xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Award className="h-5 w-5" />
+                    Start Practice Exam
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Select Scenario</label>
+                    <Select 
+                      value={selectedScenarioId || ''} 
+                      onValueChange={setSelectedScenarioId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a patient scenario" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {scenarios?.map((scenario) => (
+                          <SelectItem key={scenario.id} value={scenario.id}>
+                            <div className="flex items-center gap-2">
+                              {scenario.name}
+                              {scenario.time_limit && (
+                                <Badge variant="secondary" className="ml-2">
+                                  <Timer className="h-3 w-3 mr-1" />
+                                  {Math.floor(scenario.time_limit / 60)}m
+                                </Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Switch
-                    id="timed-mode"
-                    checked={timedMode}
-                    onCheckedChange={setTimedMode}
-                  />
-                </div>
 
-                <div className="bg-muted p-4 rounded-lg">
-                  <h3 className="font-medium mb-2">Exam Instructions</h3>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• You will listen to sounds at {locations.length} auscultation points</li>
-                    <li>• For each location, identify the type of sound you hear</li>
-                    <li>• A score of 70% or higher is required to pass</li>
-                    {timedMode && (
-                      <li className="text-destructive">• You have {EXAM_TIME_LIMIT / 60} minutes to complete the exam</li>
-                    )}
-                  </ul>
-                </div>
+                  {/* Show scenario time limit or custom timer option */}
+                  {selectedScenario?.time_limit ? (
+                    <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg">
+                      <Timer className="h-4 w-4 text-primary" />
+                      <span className="text-sm">
+                        This scenario has a <strong>{Math.floor(selectedScenario.time_limit / 60)} minute</strong> time limit
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Timer className="h-4 w-4 text-primary" />
+                        <div>
+                          <Label htmlFor="timed-mode" className="font-medium">Timed Exam</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Optional time limit
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        id="timed-mode"
+                        checked={timedMode}
+                        onCheckedChange={setTimedMode}
+                      />
+                    </div>
+                  )}
 
-                <Button 
-                  onClick={handleStartExam}
-                  disabled={!selectedScenarioId}
-                  className="w-full"
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  {timedMode ? 'Start Timed Exam' : 'Start Exam'}
-                </Button>
-              </CardContent>
-            </Card>
+                  {timedMode && !selectedScenario?.time_limit && (
+                    <Select 
+                      value={customTimeLimit?.toString() || DEFAULT_TIME_LIMIT.toString()} 
+                      onValueChange={(v) => setCustomTimeLimit(parseInt(v))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="180">3 minutes</SelectItem>
+                        <SelectItem value="300">5 minutes</SelectItem>
+                        <SelectItem value="600">10 minutes</SelectItem>
+                        <SelectItem value="900">15 minutes</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
 
-            {/* Leaderboard */}
-            <Leaderboard />
+                  <div className="bg-muted p-4 rounded-lg">
+                    <h3 className="font-medium mb-2">Exam Instructions</h3>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• You will listen to sounds at {locations.length} auscultation points</li>
+                      <li>• For each location, identify the type of sound you hear</li>
+                      <li>• A score of 70% or higher is required to pass</li>
+                      {effectiveTimeLimit && (
+                        <li className="text-destructive">• You have {Math.floor(effectiveTimeLimit / 60)} minutes to complete the exam</li>
+                      )}
+                    </ul>
+                  </div>
+
+                  <Button 
+                    onClick={handleStartExam}
+                    disabled={!selectedScenarioId}
+                    className="w-full"
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    {effectiveTimeLimit ? 'Start Timed Exam' : 'Start Exam'}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Leaderboard */}
+              <Leaderboard />
+            </div>
+
+            {/* Achievements Section */}
+            <div>
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Trophy className="h-5 w-5" />
+                Your Achievements
+              </h2>
+              <StudentAchievements />
+            </div>
           </div>
         ) : (
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Progress Panel */}
             <div className="space-y-4">
-              {/* Timer */}
-              {timedMode && (
+              {/* Timer - show if there's an effective time limit */}
+              {effectiveTimeLimit && (
                 <Card className={timeRemaining <= 60 ? 'border-destructive' : ''}>
                   <CardContent className="pt-4">
                     <div className="flex items-center justify-between">
