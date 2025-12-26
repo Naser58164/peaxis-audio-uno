@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { ManikinDiagram, type AuscultationLocation } from '@/components/ManikinDiagram';
 import { AudioPlayer } from '@/components/AudioPlayer';
@@ -8,12 +9,16 @@ import { StudentGradingPanel } from '@/components/StudentGradingPanel';
 import { PerformanceAnalytics } from '@/components/PerformanceAnalytics';
 import { LiveExamMonitor } from '@/components/LiveExamMonitor';
 import { SoundLibraryManager } from '@/components/SoundLibraryManager';
+import { ArduinoConnection } from '@/components/ArduinoConnection';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScenarioSounds } from '@/hooks/usePatientScenarios';
+import { GraduationCap } from 'lucide-react';
 
 export function Dashboard() {
-  const { isExaminer } = useAuth();
+  const { isExaminer, user } = useAuth();
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<AuscultationLocation | null>(null);
   const [playingLocation, setPlayingLocation] = useState<AuscultationLocation | null>(null);
@@ -24,6 +29,10 @@ export function Dashboard() {
   const handleLocationSelect = (location: AuscultationLocation) => {
     setSelectedLocation(location);
     setPlayingLocation(null);
+  };
+
+  const handleArduinoLocationDetected = (location: AuscultationLocation) => {
+    setSelectedLocation(location);
   };
 
   const handlePlayingChange = useCallback((isPlaying: boolean) => {
@@ -52,14 +61,32 @@ export function Dashboard() {
               onScenarioSelect={setSelectedScenarioId}
             />
             
+            {/* Student Practice Link */}
+            {user && !isExaminer && (
+              <Card>
+                <CardContent className="pt-4">
+                  <Link to="/practice">
+                    <Button className="w-full">
+                      <GraduationCap className="h-4 w-4 mr-2" />
+                      Start Practice Exam
+                    </Button>
+                  </Link>
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    Test your auscultation skills independently
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+            
             {/* Examiner Tools */}
             {isExaminer && (
               <Tabs defaultValue="config" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="config">Config</TabsTrigger>
                   <TabsTrigger value="grading">Grading</TabsTrigger>
                   <TabsTrigger value="monitor">Live</TabsTrigger>
                   <TabsTrigger value="library">Library</TabsTrigger>
+                  <TabsTrigger value="hardware">Arduino</TabsTrigger>
                 </TabsList>
                 <TabsContent value="config" className="mt-4">
                   {selectedScenarioId ? (
@@ -82,6 +109,9 @@ export function Dashboard() {
                 </TabsContent>
                 <TabsContent value="library" className="mt-4">
                   <SoundLibraryManager />
+                </TabsContent>
+                <TabsContent value="hardware" className="mt-4">
+                  <ArduinoConnection onLocationDetected={handleArduinoLocationDetected} />
                 </TabsContent>
               </Tabs>
             )}
