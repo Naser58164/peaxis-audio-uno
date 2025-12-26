@@ -5,6 +5,10 @@ import { AudioPlayer } from '@/components/AudioPlayer';
 import { ScenarioSelector } from '@/components/ScenarioSelector';
 import { SoundConfigPanel } from '@/components/SoundConfigPanel';
 import { StudentGradingPanel } from '@/components/StudentGradingPanel';
+import { PerformanceAnalytics } from '@/components/PerformanceAnalytics';
+import { LiveExamMonitor } from '@/components/LiveExamMonitor';
+import { SoundLibraryManager } from '@/components/SoundLibraryManager';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScenarioSounds } from '@/hooks/usePatientScenarios';
 
@@ -48,18 +52,46 @@ export function Dashboard() {
               onScenarioSelect={setSelectedScenarioId}
             />
             
-            {/* Sound Configuration (Examiner Only) */}
-            {isExaminer && selectedScenarioId && (
-              <SoundConfigPanel
-                scenarioId={selectedScenarioId}
-                selectedLocation={selectedLocation}
-                onSoundConfigChange={handleSoundConfigChange}
-              />
+            {/* Examiner Tools */}
+            {isExaminer && (
+              <Tabs defaultValue="config" className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="config">Config</TabsTrigger>
+                  <TabsTrigger value="grading">Grading</TabsTrigger>
+                  <TabsTrigger value="monitor">Live</TabsTrigger>
+                  <TabsTrigger value="library">Library</TabsTrigger>
+                </TabsList>
+                <TabsContent value="config" className="mt-4">
+                  {selectedScenarioId ? (
+                    <SoundConfigPanel
+                      scenarioId={selectedScenarioId}
+                      selectedLocation={selectedLocation}
+                      onSoundConfigChange={handleSoundConfigChange}
+                    />
+                  ) : (
+                    <p className="text-center text-muted-foreground py-4 text-sm">
+                      Select a scenario to configure sounds
+                    </p>
+                  )}
+                </TabsContent>
+                <TabsContent value="grading" className="mt-4">
+                  <StudentGradingPanel scenarioId={selectedScenarioId} />
+                </TabsContent>
+                <TabsContent value="monitor" className="mt-4">
+                  <LiveExamMonitor />
+                </TabsContent>
+                <TabsContent value="library" className="mt-4">
+                  <SoundLibraryManager />
+                </TabsContent>
+              </Tabs>
             )}
 
-            {/* Student Grading (Examiner Only) */}
+            {/* Performance Analytics (Examiner Only) */}
             {isExaminer && (
-              <StudentGradingPanel scenarioId={selectedScenarioId} />
+              <div className="mt-6">
+                <h2 className="text-lg font-semibold mb-4">Performance Analytics</h2>
+                <PerformanceAnalytics />
+              </div>
             )}
           </div>
 

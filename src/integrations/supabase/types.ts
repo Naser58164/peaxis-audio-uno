@@ -242,6 +242,7 @@ export type Database = {
           name: string
           sound_type: string
           sound_url: string
+          uploaded_by: string | null
         }
         Insert: {
           category: string
@@ -251,6 +252,7 @@ export type Database = {
           name: string
           sound_type: string
           sound_url: string
+          uploaded_by?: string | null
         }
         Update: {
           category?: string
@@ -260,6 +262,7 @@ export type Database = {
           name?: string
           sound_type?: string
           sound_url?: string
+          uploaded_by?: string | null
         }
         Relationships: []
       }
