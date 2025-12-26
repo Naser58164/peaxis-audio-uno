@@ -1,14 +1,13 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { BarChart3, TrendingUp, Target, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BarChart3, TrendingUp, Target, Users, Download, FileText } from 'lucide-react';
 import {
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
   LineChart,
   Line,
@@ -19,6 +18,7 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useExaminationAttempts } from '@/hooks/useExamination';
 import { usePatientScenarios } from '@/hooks/usePatientScenarios';
+import { exportToCSV, exportAnalyticsSummary, exportToPDF } from '@/utils/exportUtils';
 
 export function PerformanceAnalytics() {
   const { data: attempts } = useExaminationAttempts();
@@ -101,8 +101,40 @@ export function PerformanceAnalytics() {
     score: { label: 'Score', color: 'hsl(var(--primary))' },
   };
 
+  const handleExportCSV = () => {
+    if (attempts && scenarios) {
+      exportToCSV(attempts, scenarios);
+    }
+  };
+
+  const handleExportSummary = () => {
+    exportAnalyticsSummary(analytics);
+  };
+
+  const handleExportPDF = () => {
+    if (attempts) {
+      exportToPDF(analytics, attempts);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Export Buttons */}
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!attempts?.length}>
+          <Download className="h-4 w-4 mr-2" />
+          Export Results (CSV)
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleExportSummary} disabled={!analytics.completedExams}>
+          <Download className="h-4 w-4 mr-2" />
+          Export Summary (CSV)
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!analytics.completedExams}>
+          <FileText className="h-4 w-4 mr-2" />
+          Print Report (PDF)
+        </Button>
+      </div>
+
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
