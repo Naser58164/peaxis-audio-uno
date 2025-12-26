@@ -186,6 +186,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          time_limit: number | null
           updated_at: string | null
         }
         Insert: {
@@ -197,6 +198,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          time_limit?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -208,6 +210,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          time_limit?: number | null
           updated_at?: string | null
         }
         Relationships: []
