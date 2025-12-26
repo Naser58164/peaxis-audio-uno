@@ -11,10 +11,13 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { type AuscultationLocation, locations } from './ManikinDiagram';
 import { useScenarioSounds, useCreateSound, useUpdateSound, type AuscultationSound } from '@/hooks/usePatientScenarios';
+import { SoundLibrarySelector } from './SoundLibrarySelector';
+import { type SoundLibraryItem } from '@/hooks/useSoundLibrary';
 
 const SOUND_TYPES = {
   lung: ['normal', 'wheeze', 'crackles', 'rhonchi', 'stridor', 'diminished', 'absent'],
@@ -195,6 +198,32 @@ export function SoundConfigPanel({ scenarioId, selectedLocation, onSoundConfigCh
     }
   };
 
+  const handleLibrarySelect = async (librarySound: SoundLibraryItem) => {
+    if (!selectedLocation) return;
+
+    const newSoundType = librarySound.sound_type;
+    setSoundType(newSoundType);
+
+    if (currentSound) {
+      await updateSound.mutateAsync({
+        id: currentSound.id,
+        sound_type: newSoundType,
+        sound_url: librarySound.sound_url,
+        volume,
+      });
+    } else {
+      await createSound.mutateAsync({
+        scenario_id: scenarioId,
+        location: selectedLocation,
+        sound_type: newSoundType,
+        volume,
+        sound_url: librarySound.sound_url,
+      });
+    }
+    
+    setUploadedFileName(librarySound.name);
+  };
+
   if (!selectedLocation) {
     return (
       <Card>
@@ -240,6 +269,19 @@ export function SoundConfigPanel({ scenarioId, selectedLocation, onSoundConfigCh
             step={5}
           />
         </div>
+
+        <Separator />
+
+        {/* Sound Library Section */}
+        <div className="space-y-2">
+          <Label>Sound Library</Label>
+          <SoundLibrarySelector 
+            onSelectSound={handleLibrarySelect}
+            currentSoundType={soundType}
+          />
+        </div>
+
+        <Separator />
 
         {/* Audio Upload Section */}
         <div className="space-y-2">

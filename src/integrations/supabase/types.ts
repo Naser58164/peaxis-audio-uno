@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      attempt_grades: {
+        Row: {
+          attempt_id: string
+          correct_identification: boolean | null
+          feedback: string | null
+          graded_at: string
+          id: string
+          location: string
+          score: number | null
+        }
+        Insert: {
+          attempt_id: string
+          correct_identification?: boolean | null
+          feedback?: string | null
+          graded_at?: string
+          id?: string
+          location: string
+          score?: number | null
+        }
+        Update: {
+          attempt_id?: string
+          correct_identification?: boolean | null
+          feedback?: string | null
+          graded_at?: string
+          id?: string
+          location?: string
+          score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attempt_grades_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "examination_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auscultation_sounds: {
         Row: {
           created_at: string | null
@@ -48,6 +86,57 @@ export type Database = {
             columns: ["scenario_id"]
             isOneToOne: false
             referencedRelation: "patient_scenarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      examination_attempts: {
+        Row: {
+          completed_at: string | null
+          id: string
+          max_score: number | null
+          notes: string | null
+          scenario_id: string
+          session_id: string | null
+          started_at: string
+          student_id: string
+          total_score: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          max_score?: number | null
+          notes?: string | null
+          scenario_id: string
+          session_id?: string | null
+          started_at?: string
+          student_id: string
+          total_score?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          max_score?: number | null
+          notes?: string | null
+          scenario_id?: string
+          session_id?: string | null
+          started_at?: string
+          student_id?: string
+          total_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examination_attempts_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "patient_scenarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examination_attempts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "examination_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -141,6 +230,36 @@ export type Database = {
           full_name?: string | null
           id?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      sound_library: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          sound_type: string
+          sound_url: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          sound_type: string
+          sound_url: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          sound_type?: string
+          sound_url?: string
         }
         Relationships: []
       }

@@ -4,6 +4,7 @@ import { ManikinDiagram, type AuscultationLocation } from '@/components/ManikinD
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { ScenarioSelector } from '@/components/ScenarioSelector';
 import { SoundConfigPanel } from '@/components/SoundConfigPanel';
+import { StudentGradingPanel } from '@/components/StudentGradingPanel';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScenarioSounds } from '@/hooks/usePatientScenarios';
 
@@ -54,6 +55,11 @@ export function Dashboard() {
                 selectedLocation={selectedLocation}
                 onSoundConfigChange={handleSoundConfigChange}
               />
+            )}
+
+            {/* Student Grading (Examiner Only) */}
+            {isExaminer && (
+              <StudentGradingPanel scenarioId={selectedScenarioId} />
             )}
           </div>
 
